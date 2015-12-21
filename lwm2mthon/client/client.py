@@ -138,7 +138,7 @@ class Client(object):
         self.server.add_resource(str(ObjectId.DEVICE) + "/" + device_instance_key,
                                  DeviceResources.DeviceInstance(name=str(device_instance_key), children=children))
         path = str(ObjectId.DEVICE) + "/" + device_instance_key
-        self.add_children(path, children)
+        self.add_children(path, children.copy())
 
     def add_children(self, path, children):
         if len(children) == 0:
@@ -147,7 +147,7 @@ class Client(object):
         item = children.pop(key)
         self.server.add_resource(path + "/" + key, item)
         if hasattr(item, "children"):
-            self.add_children(path + "/" + key, item.children)
+            self.add_children(path + "/" + key, item.children.copy())
 
         self.add_children(path, children)
 

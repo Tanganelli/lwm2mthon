@@ -86,3 +86,14 @@ class ResourceItem(object):
         self.instancetype = instancetype
         self.description = description
 
+Content_types = {
+    "text/plain": 0,
+    "application/link-format": 40,
+    "application/xml": 41,
+    "application/octet-stream": 42,
+    "application/exi": 47,
+    "application/json": 50,
+    "application/vnd.oma.lwm2m+tlv": 1542,
+    "application/vnd.oma.lwm2m+json": 1543
+}
+
