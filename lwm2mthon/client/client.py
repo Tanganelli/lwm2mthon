@@ -9,6 +9,7 @@ from coapthon.messages.response import Response
 from coapthon.server.coap import logging
 from coapthon.utils import create_logging
 import coapthon.defines as coap_defines
+from lwm2mthon import defines
 from lwm2mthon.defines import LWM2MInstance, ObjectId, DeviceIds, InstanceItem, LWM2MResource, ResourceItem, \
     LWM2MInstanceType, LWM2MResourceType, LWM2MOperations
 import lwm2mthon.resources.device as DeviceResources
@@ -71,74 +72,108 @@ class Client(object):
         self.server.add_resource(str(ObjectId.DEVICE), DeviceResources.Device())
         device_instance_key = device_description.keys()[0]
         device_instance = device_description[device_instance_key]
-        children = {}
-        for k, v in device_instance.items():
-            children1 = {}
-            res_item = tree[ObjectId.DEVICE].get_resourcedef(int(k))
-            assert isinstance(res_item, ResourceItem)
-            new_res = ""
-            if res_item.instancetype == LWM2MInstanceType.SINGLE:
-                new_res += "Single"
-            elif res_item.instancetype == LWM2MInstanceType.MULTIPLE:
-                new_res += "Multiple"
 
+        paths = str(ObjectId.DEVICE) + "/" + str(device_instance_key)
+        device_instance_res = DeviceResources.DeviceInstance(name=str(device_instance_key), children=None)
+        self.server.add_resource(paths, device_instance_res)
+
+        children = {}
+
+        for k, v in device_instance.items():
+            tmp = paths + "/" + str(k)
+            res_class = getattr(DeviceResources, defines.Registry[tmp])
+            if isinstance(v, dict):
+                # Multiple Resource
+                res = res_class(name=str(k), children=None, resource_id=str(k))
+                self.server.add_resource(tmp, res)
                 children1 = {}
                 for k1, v1 in v.items():
-                    new_res1 = "Single"
-                    if res_item.operations == LWM2MOperations.READ:
-                        new_res1 += "Read"
-                    elif res_item.operations == LWM2MOperations.WRITE:
-                        new_res1 += "Write"
-                    elif res_item.operations == LWM2MOperations.READWRITE:
-                        new_res1 += "ReadWrite"
-                    elif res_item.operations == LWM2MOperations.EXECUTE:
-                        new_res1 += "Execute"
-                    else:
-                        raise AttributeError("Unknown Operation: " + res_item.operations)
-                    if res_item.resource_type == LWM2MResourceType.STRING:
-                        new_res1 += "String"
-                    elif res_item.resource_type == LWM2MResourceType.INTEGER:
-                        new_res1 += "Integer"
-                    elif res_item.resource_type == LWM2MResourceType.TIME:
-                        new_res1 += "Time"
-                    else:
-                        raise AttributeError("Unknown Resource Type: " + res_item.resource_type)
-                    new_item1 = getattr(DeviceResources, new_res1)
-                    children1[k1] = new_item1(name=res_item.name, value=v1)
+                    tmp1 = tmp + "/" + str(k1)
+                    res_class1 = getattr(DeviceResources, defines.Registry[tmp]+"Item")
+                    res1 = res_class1(name=str(k1), value=v1, resource_id=str(k1))
+                    children1[k1] = res1
+                    self.server.add_resource(tmp1, res1)
+                res.set_children(children1)
+                children[k] = res
             else:
-                raise AttributeError("Unknown InstanceType: " + res_item.instancetype)
+                if hasattr(res_class, "get_value"):
+                    res = res_class(name=str(k), value=v, resource_id=str(k))
+                    self.server.add_resource(tmp, res)
+                    children[k] = res
+                else:
+                    res = res_class(name=str(k), resource_id=str(k))
+                    self.server.add_resource(tmp, res)
+                    children[k] = res
 
-            if res_item.operations == LWM2MOperations.READ:
-                new_res += "Read"
-            elif res_item.operations == LWM2MOperations.WRITE:
-                new_res += "Write"
-            elif res_item.operations == LWM2MOperations.READWRITE:
-                new_res += "ReadWrite"
-            elif res_item.operations == LWM2MOperations.EXECUTE:
-                new_res += "Execute"
-            else:
-                raise AttributeError("Unknown Operation: " + res_item.operations)
+        device_instance_res.set_children(children)
+        print self.server.root.dump()
 
-            if res_item.resource_type == LWM2MResourceType.STRING:
-                new_res += "String"
-            elif res_item.resource_type == LWM2MResourceType.INTEGER:
-                new_res += "Integer"
-            elif res_item.resource_type == LWM2MResourceType.TIME:
-                new_res += "Time"
-            else:
-                raise AttributeError("Unknown Resource Type: " + res_item.resource_type)
-
-            new_item = getattr(DeviceResources, new_res)
-            if len(children1) > 0:
-                children[k] = new_item(name=res_item.name, children=children1)
-            else:
-                children[k] = new_item(name=res_item.name, value=v)
-            # print k, v
-            # print tree[ObjectId.DEVICE].get_resourcedef(int(k)).name
-        self.server.add_resource(str(ObjectId.DEVICE) + "/" + device_instance_key,
-                                 DeviceResources.DeviceInstance(name=str(device_instance_key), children=children))
-        path = str(ObjectId.DEVICE) + "/" + device_instance_key
-        self.add_children(path, children.copy())
+        #     children1 = {}
+        #     res_item = tree[ObjectId.DEVICE].get_resourcedef(int(k))
+        #     assert isinstance(res_item, ResourceItem)
+        #     new_res = ""
+        #     if res_item.instancetype == LWM2MInstanceType.SINGLE:
+        #         new_res += "Single"
+        #     elif res_item.instancetype == LWM2MInstanceType.MULTIPLE:
+        #         new_res += "Multiple"
+        #
+        #         children1 = {}
+        #         for k1, v1 in v.items():
+        #             new_res1 = "Single"
+        #             if res_item.operations == LWM2MOperations.READ:
+        #                 new_res1 += "Read"
+        #             elif res_item.operations == LWM2MOperations.WRITE:
+        #                 new_res1 += "Write"
+        #             elif res_item.operations == LWM2MOperations.READWRITE:
+        #                 new_res1 += "ReadWrite"
+        #             elif res_item.operations == LWM2MOperations.EXECUTE:
+        #                 new_res1 += "Execute"
+        #             else:
+        #                 raise AttributeError("Unknown Operation: " + res_item.operations)
+        #             if res_item.resource_type == LWM2MResourceType.STRING:
+        #                 new_res1 += "String"
+        #             elif res_item.resource_type == LWM2MResourceType.INTEGER:
+        #                 new_res1 += "Integer"
+        #             elif res_item.resource_type == LWM2MResourceType.TIME:
+        #                 new_res1 += "Time"
+        #             else:
+        #                 raise AttributeError("Unknown Resource Type: " + res_item.resource_type)
+        #             new_item1 = getattr(DeviceResources, new_res1)
+        #             children1[k1] = new_item1(name=res_item.name, value=v1, resource_id=k)
+        #     else:
+        #         raise AttributeError("Unknown InstanceType: " + res_item.instancetype)
+        #
+        #     if res_item.operations == LWM2MOperations.READ:
+        #         new_res += "Read"
+        #     elif res_item.operations == LWM2MOperations.WRITE:
+        #         new_res += "Write"
+        #     elif res_item.operations == LWM2MOperations.READWRITE:
+        #         new_res += "ReadWrite"
+        #     elif res_item.operations == LWM2MOperations.EXECUTE:
+        #         new_res += "Execute"
+        #     else:
+        #         raise AttributeError("Unknown Operation: " + res_item.operations)
+        #
+        #     if res_item.resource_type == LWM2MResourceType.STRING:
+        #         new_res += "String"
+        #     elif res_item.resource_type == LWM2MResourceType.INTEGER:
+        #         new_res += "Integer"
+        #     elif res_item.resource_type == LWM2MResourceType.TIME:
+        #         new_res += "Time"
+        #     else:
+        #         raise AttributeError("Unknown Resource Type: " + res_item.resource_type)
+        #
+        #     new_item = getattr(DeviceResources, new_res)
+        #     if len(children1) > 0:
+        #         children[k] = new_item(name=res_item.name, children=children1, resource_id=k)
+        #     else:
+        #         children[k] = new_item(name=res_item.name, value=v, resource_id=k)
+        #     # print k, v
+        #     # print tree[ObjectId.DEVICE].get_resourcedef(int(k)).name
+        # self.server.add_resource(str(ObjectId.DEVICE) + "/" + device_instance_key,
+        #                          DeviceResources.DeviceInstance(name=str(device_instance_key), children=children))
+        # path = str(ObjectId.DEVICE) + "/" + device_instance_key
+        # self.add_children(path, children.copy())
 
     def add_children(self, path, children):
         if len(children) == 0:

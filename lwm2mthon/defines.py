@@ -97,3 +97,22 @@ Content_types = {
     "application/vnd.oma.lwm2m+json": 1543
 }
 
+Registry = {
+    "3/0/0":  "Manufacturer",
+    "3/0/1":  "ModelNumber",
+    "3/0/2":  "SerialNumber",
+    "3/0/3":  "FirmwareVersion",
+    "3/0/4":  "Reboot",
+    "3/0/5":  "FactoryReboot",
+    "3/0/6":  "AvailablePowerSource",
+    "3/0/7":  "PowerSourceVoltage",
+    "3/0/8":  "PowerSourceCurrent",
+    "3/0/9":  "BatteryLevel",
+    "3/0/10":  "MemoryFree",
+    "3/0/11":  "ErrorCode",
+    "3/0/12":  "ResetErrorCode",
+    "3/0/13":  "CurrentTime",
+    "3/0/14":  "UTCOffset",
+    "3/0/15":  "Timezone",
+    "3/0/16":  "Binding",
+}
