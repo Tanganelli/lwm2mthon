@@ -1,3 +1,4 @@
+import copy
 import logging
 import logging.config
 import os
@@ -17,7 +18,8 @@ from coapthon.messages.request import Request
 from coapthon.layers.messagelayer import MessageLayer
 from coapthon.resources.resource import Resource
 from coapthon.serializer import Serializer
-
+import time
+from lwm2mthon.layers.lwm2mobservelayer import LWM2MObserveLayer
 
 if not os.path.isfile("logging.conf"):
     create_logging()
@@ -42,20 +44,19 @@ class CoAP(object):
         self.purge = threading.Thread(target=self.purge)
         self.purge.start()
 
-        self._callback = callback
-
-        self._messageLayer = MessageLayer(starting_mid)
-        self._blockLayer = BlockLayer()
-        self._observeLayer = ObserveLayer()
-        self._requestLayer = RequestLayer(self)
-        self.resourceLayer = ResourceLayer(self)
-
         # Resource directory
         root = Resource('root', self, visible=False, observable=False, allow_children=False)
         root.path = '/'
         self.root = Tree()
         self.root["/"] = root
-        self._serializer = None
+
+        self._messageLayer = MessageLayer(starting_mid)
+        self._blockLayer = BlockLayer()
+        self._observeLayer = LWM2MObserveLayer(self._send_notifications, self.stopped, self.root)
+        self._requestLayer = RequestLayer(self)
+        self.resourceLayer = ResourceLayer(self)
+
+        self._callback = callback
 
         self.server_address = server_address
         self.multicast = multicast
@@ -211,8 +212,6 @@ class CoAP(object):
         """
         Receive datagram from the udp socket.
 
-        :param data: the udp message
-        :param client_address: the ip and port of the client
         """
 
         with transaction:
@@ -249,6 +248,7 @@ class CoAP(object):
             if transaction.response is not None:
                 if transaction.response.type == defines.Types["CON"]:
                     self._start_retransmission(transaction, transaction.response)
+
                 self.send_datagram(transaction.response)
 
     def send_datagram(self, message):
@@ -260,6 +260,7 @@ class CoAP(object):
         if not self.stopped.isSet():
             host, port = message.destination
             logger.debug("send_datagram - " + str(message))
+            message.timestamp = time.time()
             serializer = Serializer()
             message = serializer.serialize(message)
 
@@ -381,11 +382,23 @@ class CoAP(object):
 
     def notify(self, resource):
         """
-        Notifies the observers of a certain resource.
+        Notifies the observers of a certain resource and its parent resources.
 
         :param resource: the resource
         """
-        observers = self._observeLayer.notify(resource)
+        observers = self._observeLayer.notify(resource, self.root)
+        pmin = self.root["/1/1/2"].get_value()
+        for transaction in list(observers):
+            timestamp = transaction.response.timestamp
+            now = time.time()
+            if timestamp is None or now > timestamp + pmin:
+                pass
+            else:
+                observers.remove(transaction)
+
+        self._send_notifications(observers)
+
+    def _send_notifications(self, observers):
         logger.debug("Notify")
         for transaction in observers:
             with transaction:

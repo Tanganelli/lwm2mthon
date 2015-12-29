@@ -31,6 +31,7 @@ class LWM2MResourceType(object):
     STRING = "string"
     INTEGER = "integer"
     TIME = "time"
+    BOOLEAN = "boolean"
 
 
 class LWM2MOperations(object):
@@ -98,6 +99,16 @@ Content_types = {
 }
 
 Registry = {
+    "1/X/0":  "ShortServerID",
+    "1/X/1":  "Lifetime",
+    "1/X/2":  "DefaultMinimumPeriod",
+    "1/X/3":  "DefaultMaximumPeriod",
+    "1/X/4":  "Disable",
+    "1/X/5":  "DisableTimeout",
+    "1/X/6":  "NotificationStoring",
+    "1/X/7":  "Binding",
+    "1/X/8":  "RegistrationUpdateTrigger",
+
     "3/0/0":  "Manufacturer",
     "3/0/1":  "ModelNumber",
     "3/0/2":  "SerialNumber",
@@ -115,4 +126,34 @@ Registry = {
     "3/0/14":  "UTCOffset",
     "3/0/15":  "Timezone",
     "3/0/16":  "Binding",
+}
+
+RegistryType = {
+    "1/X/0":  LWM2MResourceType.INTEGER,
+    "1/X/1":  LWM2MResourceType.INTEGER,
+    "1/X/2":  LWM2MResourceType.INTEGER,
+    "1/X/3":  LWM2MResourceType.INTEGER,
+    "1/X/4":  LWM2MResourceType.STRING,
+    "1/X/5":  LWM2MResourceType.INTEGER,
+    "1/X/6":  LWM2MResourceType.BOOLEAN,
+    "1/X/7":  LWM2MResourceType.STRING,
+    "1/X/8":  LWM2MResourceType.STRING,
+
+    "3/0/0":  LWM2MResourceType.STRING,
+    "3/0/1":  LWM2MResourceType.STRING,
+    "3/0/2":  LWM2MResourceType.STRING,
+    "3/0/3":  LWM2MResourceType.STRING,
+    "3/0/4":  LWM2MResourceType.STRING,
+    "3/0/5":  LWM2MResourceType.STRING,
+    "3/0/6":  LWM2MResourceType.INTEGER,
+    "3/0/7":  LWM2MResourceType.INTEGER,
+    "3/0/8":  LWM2MResourceType.INTEGER,
+    "3/0/9":  LWM2MResourceType.INTEGER,
+    "3/0/10":  LWM2MResourceType.INTEGER,
+    "3/0/11":  LWM2MResourceType.INTEGER,
+    "3/0/12":  LWM2MResourceType.STRING,
+    "3/0/13":  LWM2MResourceType.STRING,
+    "3/0/14":  LWM2MResourceType.STRING,
+    "3/0/15":  LWM2MResourceType.STRING,
+    "3/0/16":  LWM2MResourceType.STRING,
 }

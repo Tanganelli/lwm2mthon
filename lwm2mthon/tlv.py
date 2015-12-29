@@ -1,5 +1,4 @@
-import ctypes
-import struct
+
 from lwm2mthon.defines import LWM2MResourceType
 
 __author__ = 'jacko'
@@ -7,6 +6,7 @@ __author__ = 'jacko'
 RESOURCE_TLV = 0
 RESOURCE_INSTANCE_TLV = 1
 MULTIPLE_RESOURCE_TLV = 2
+OBJECT_INSTANCE = 4
 
 
 class TLV(object):
@@ -18,14 +18,17 @@ class TLV(object):
         if resource_type == LWM2MResourceType.STRING and value is not None:
             self.value = str(value)
             self.length = len(str(value))
-        elif resource_type == LWM2MResourceType.INTEGER and value is not None:
+        elif (resource_type == LWM2MResourceType.INTEGER or resource_type == LWM2MResourceType.BOOLEAN) \
+                and value is not None:
             self.value = int(value)
-            if self.value < 256:
+            if -128 <= self.value <= 127:
                 self.length = 1
-            elif self.value < 65536:
+            elif -32768 <= self.value <= 32767:
                 self.length = 2
+            elif -2147484648 <= self.value < 2147484647:
+                self.length = 4
             else:
-                self.length = 3
+                self.length = 8
         self.identifier = int(identifier)
         self.resource_type = resource_type
 
@@ -83,18 +86,32 @@ class TLV(object):
                 for b in str(self.value):
                     fmt += "c"
                     values.append(b)
-            elif self.resource_type == LWM2MResourceType.INTEGER:
-                if self.value < 256:
+            elif self.resource_type == LWM2MResourceType.INTEGER or self.resource_type == LWM2MResourceType.BOOLEAN:
+                if self.length == 1:
                     values.append(self.value)
                     fmt += "B"
-                elif self.value < 65536:
+                elif self.length == 2:
                     values.append(self.value)
                     fmt += "H"
-                else:
-                    msb = (self.value & 0xFF0000) >> 16
+                elif self.length == 4:
+                    msb = (self.value & 0xFFFF0000) >> 16
                     values.append(msb)
-                    fmt += "B"
-                    values.append(self.value & 0x00FFFF)
+                    fmt += "H"
+                    values.append(self.value & 0x0000FFFF)
+                    fmt += "H"
+                elif self.length == 8:
+                    msb = (self.value & 0xFFFF000000000000) >> 48
+                    values.append(msb)
+                    fmt += "H"
+                    lsb = (self.value & 0x0000FFFF00000000) >> 32
+                    values.append(lsb)
+                    fmt += "H"
+
+                    msb = (self.value & 0xFFFF0000FFFF0000) >> 16
+                    values.append(msb)
+                    fmt += "H"
+                    lsb = (self.value & 0x000000000000FFFF)
+                    values.append(lsb)
                     fmt += "H"
         elif self.tlv_type == MULTIPLE_RESOURCE_TLV:
             pass

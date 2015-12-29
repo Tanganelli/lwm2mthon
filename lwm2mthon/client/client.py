@@ -13,6 +13,7 @@ from lwm2mthon import defines
 from lwm2mthon.defines import LWM2MInstance, ObjectId, DeviceIds, InstanceItem, LWM2MResource, ResourceItem, \
     LWM2MInstanceType, LWM2MResourceType, LWM2MOperations
 import lwm2mthon.resources.device as DeviceResources
+import lwm2mthon.resources.lwm2mserver as LWM2MResources
 from lwm2mthon.coap_server_client.coap import CoAP
 __author__ = 'jacko'
 
@@ -38,43 +39,15 @@ class Client(object):
         if message.code != coap_defines.Codes.CONTINUE.number:
             self.queue.put(message)
 
-    def init_resources(self, resources_file):
-        with open(resources_file) as f:
-            resources = json.load(f)
-
-        tree = {}
-        for obj in resources:
-            assert isinstance(obj, dict)
-            name = obj.get(LWM2MInstance.NAME)
-            instancetype = obj.get(LWM2MInstance.INSTANCE_TYPE)
-            mandatory = obj.get(LWM2MInstance.MANDATORY)
-            description = obj.get(LWM2MInstance.DESCRIPTION)
-            instance_id = obj.get(LWM2MInstance.ID)
-            tree[instance_id] = InstanceItem(instance_id=instance_id, name=name, instancetype=instancetype,
-                                             mandatory=mandatory, description=description)
-            resourcedefs = obj.get(LWM2MInstance.RESOURCEDEFS)
-            for r in resourcedefs:
-                res_operations = r.get(LWM2MResource.OPERATIONS)
-                res_mandatory = r.get(LWM2MResource.MANDATORY)
-                res_name = r.get(LWM2MResource.NAME)
-                res_id = r.get(LWM2MResource.ID)
-                res_range = r.get(LWM2MResource.RANGE)
-                res_units = r.get(LWM2MResource.UNITS)
-                res_type = r.get(LWM2MResource.TYPE)
-                res_instancetype = r.get(LWM2MResource.INSTANCE_TYPE)
-                res_description = r.get(LWM2MResource.DESCRIPTION)
-                res = ResourceItem(operations=res_operations, name=res_name, resource_id=res_id,
-                                   mandatory=res_mandatory, resource_range=res_range, units=res_units,
-                                   resource_type=res_type, instancetype=res_instancetype, description=res_description)
-                tree[instance_id].add_resourcedef(res_id, res)
-
+    def read_device(self):
         device_description = self.description["instances"][str(ObjectId.DEVICE)]
         self.server.add_resource(str(ObjectId.DEVICE), DeviceResources.Device())
         device_instance_key = device_description.keys()[0]
         device_instance = device_description[device_instance_key]
 
         paths = str(ObjectId.DEVICE) + "/" + str(device_instance_key)
-        device_instance_res = DeviceResources.DeviceInstance(name=str(device_instance_key), children=None)
+        device_instance_res = DeviceResources.DeviceInstance(name=str(device_instance_key), children=None,
+                                                             coap_server=self.server)
         self.server.add_resource(paths, device_instance_res)
 
         children = {}
@@ -84,96 +57,104 @@ class Client(object):
             res_class = getattr(DeviceResources, defines.Registry[tmp])
             if isinstance(v, dict):
                 # Multiple Resource
-                res = res_class(name=str(k), children=None, resource_id=str(k))
+                res = res_class(name=str(k), children=None, resource_id=str(k), coap_server=self.server)
                 self.server.add_resource(tmp, res)
                 children1 = {}
                 for k1, v1 in v.items():
                     tmp1 = tmp + "/" + str(k1)
                     res_class1 = getattr(DeviceResources, defines.Registry[tmp]+"Item")
-                    res1 = res_class1(name=str(k1), value=v1, resource_id=str(k1))
+                    res1 = res_class1(name=str(k1), value=v1, resource_id=str(k1), coap_server=self.server)
                     children1[k1] = res1
                     self.server.add_resource(tmp1, res1)
                 res.set_children(children1)
                 children[k] = res
             else:
                 if hasattr(res_class, "get_value"):
-                    res = res_class(name=str(k), value=v, resource_id=str(k))
+                    res = res_class(name=str(k), value=v, resource_id=str(k), coap_server=self.server)
                     self.server.add_resource(tmp, res)
                     children[k] = res
                 else:
-                    res = res_class(name=str(k), resource_id=str(k))
+                    res = res_class(name=str(k), resource_id=str(k), coap_server=self.server)
                     self.server.add_resource(tmp, res)
                     children[k] = res
 
         device_instance_res.set_children(children)
-        print self.server.root.dump()
 
-        #     children1 = {}
-        #     res_item = tree[ObjectId.DEVICE].get_resourcedef(int(k))
-        #     assert isinstance(res_item, ResourceItem)
-        #     new_res = ""
-        #     if res_item.instancetype == LWM2MInstanceType.SINGLE:
-        #         new_res += "Single"
-        #     elif res_item.instancetype == LWM2MInstanceType.MULTIPLE:
-        #         new_res += "Multiple"
+    def read_lwm2mserver(self):
+        server_description = self.description["instances"][str(ObjectId.LWM2M_SERVER)]
+        self.server.add_resource(str(ObjectId.LWM2M_SERVER), LWM2MResources.LWM2MServer())
+        for server_instance_key in server_description.keys():
+            server_instance = server_description[server_instance_key]
+
+            paths = str(ObjectId.LWM2M_SERVER) + "/" + str(server_instance_key)
+            server_instance_res = LWM2MResources.LWM2MServerInstance(name=str(server_instance_key), children=None,
+                                                                     coap_server=self.server)
+            self.server.add_resource(paths, server_instance_res)
+
+            children = {}
+
+            for k, v in server_instance.items():
+                registry_id = str(ObjectId.LWM2M_SERVER) + "/X/" + str(k)
+                res_class = getattr(LWM2MResources, defines.Registry[registry_id])
+                tmp = paths + "/" + str(k)
+                if isinstance(v, dict):
+                    # Multiple Resource
+                    res = res_class(name=str(k), children=None, resource_id=str(k), coap_server=self.server)
+                    self.server.add_resource(tmp, res)
+                    children1 = {}
+                    for k1, v1 in v.items():
+                        tmp1 = tmp + "/" + str(k1)
+                        res_class1 = getattr(LWM2MResources, defines.Registry[registry_id]+"Item")
+                        res1 = res_class1(name=str(k1), value=v1, resource_id=str(k1), coap_server=self.server)
+                        children1[k1] = res1
+                        self.server.add_resource(tmp1, res1)
+                    res.set_children(children1)
+                    children[k] = res
+                else:
+                    if hasattr(res_class, "get_value"):
+                        res = res_class(name=str(k), value=v, resource_id=str(k), coap_server=self.server)
+                        self.server.add_resource(tmp, res)
+                        children[k] = res
+                    else:
+                        res = res_class(name=str(k), resource_id=str(k), coap_server=self.server)
+                        self.server.add_resource(tmp, res)
+                        children[k] = res
+
+            server_instance_res.set_children(children)
+
+    def init_resources(self, resources_file):
+        # with open(resources_file) as f:
+        #     resources = json.load(f)
         #
-        #         children1 = {}
-        #         for k1, v1 in v.items():
-        #             new_res1 = "Single"
-        #             if res_item.operations == LWM2MOperations.READ:
-        #                 new_res1 += "Read"
-        #             elif res_item.operations == LWM2MOperations.WRITE:
-        #                 new_res1 += "Write"
-        #             elif res_item.operations == LWM2MOperations.READWRITE:
-        #                 new_res1 += "ReadWrite"
-        #             elif res_item.operations == LWM2MOperations.EXECUTE:
-        #                 new_res1 += "Execute"
-        #             else:
-        #                 raise AttributeError("Unknown Operation: " + res_item.operations)
-        #             if res_item.resource_type == LWM2MResourceType.STRING:
-        #                 new_res1 += "String"
-        #             elif res_item.resource_type == LWM2MResourceType.INTEGER:
-        #                 new_res1 += "Integer"
-        #             elif res_item.resource_type == LWM2MResourceType.TIME:
-        #                 new_res1 += "Time"
-        #             else:
-        #                 raise AttributeError("Unknown Resource Type: " + res_item.resource_type)
-        #             new_item1 = getattr(DeviceResources, new_res1)
-        #             children1[k1] = new_item1(name=res_item.name, value=v1, resource_id=k)
-        #     else:
-        #         raise AttributeError("Unknown InstanceType: " + res_item.instancetype)
-        #
-        #     if res_item.operations == LWM2MOperations.READ:
-        #         new_res += "Read"
-        #     elif res_item.operations == LWM2MOperations.WRITE:
-        #         new_res += "Write"
-        #     elif res_item.operations == LWM2MOperations.READWRITE:
-        #         new_res += "ReadWrite"
-        #     elif res_item.operations == LWM2MOperations.EXECUTE:
-        #         new_res += "Execute"
-        #     else:
-        #         raise AttributeError("Unknown Operation: " + res_item.operations)
-        #
-        #     if res_item.resource_type == LWM2MResourceType.STRING:
-        #         new_res += "String"
-        #     elif res_item.resource_type == LWM2MResourceType.INTEGER:
-        #         new_res += "Integer"
-        #     elif res_item.resource_type == LWM2MResourceType.TIME:
-        #         new_res += "Time"
-        #     else:
-        #         raise AttributeError("Unknown Resource Type: " + res_item.resource_type)
-        #
-        #     new_item = getattr(DeviceResources, new_res)
-        #     if len(children1) > 0:
-        #         children[k] = new_item(name=res_item.name, children=children1, resource_id=k)
-        #     else:
-        #         children[k] = new_item(name=res_item.name, value=v, resource_id=k)
-        #     # print k, v
-        #     # print tree[ObjectId.DEVICE].get_resourcedef(int(k)).name
-        # self.server.add_resource(str(ObjectId.DEVICE) + "/" + device_instance_key,
-        #                          DeviceResources.DeviceInstance(name=str(device_instance_key), children=children))
-        # path = str(ObjectId.DEVICE) + "/" + device_instance_key
-        # self.add_children(path, children.copy())
+        # tree = {}
+        # for obj in resources:
+        #     assert isinstance(obj, dict)
+        #     name = obj.get(LWM2MInstance.NAME)
+        #     instancetype = obj.get(LWM2MInstance.INSTANCE_TYPE)
+        #     mandatory = obj.get(LWM2MInstance.MANDATORY)
+        #     description = obj.get(LWM2MInstance.DESCRIPTION)
+        #     instance_id = obj.get(LWM2MInstance.ID)
+        #     tree[instance_id] = InstanceItem(instance_id=instance_id, name=name, instancetype=instancetype,
+        #                                      mandatory=mandatory, description=description)
+        #     resourcedefs = obj.get(LWM2MInstance.RESOURCEDEFS)
+        #     for r in resourcedefs:
+        #         res_operations = r.get(LWM2MResource.OPERATIONS)
+        #         res_mandatory = r.get(LWM2MResource.MANDATORY)
+        #         res_name = r.get(LWM2MResource.NAME)
+        #         res_id = r.get(LWM2MResource.ID)
+        #         res_range = r.get(LWM2MResource.RANGE)
+        #         res_units = r.get(LWM2MResource.UNITS)
+        #         res_type = r.get(LWM2MResource.TYPE)
+        #         res_instancetype = r.get(LWM2MResource.INSTANCE_TYPE)
+        #         res_description = r.get(LWM2MResource.DESCRIPTION)
+        #         res = ResourceItem(operations=res_operations, name=res_name, resource_id=res_id,
+        #                            mandatory=res_mandatory, resource_range=res_range, units=res_units,
+        #                            resource_type=res_type, instancetype=res_instancetype, description=res_description)
+        #         tree[instance_id].add_resourcedef(res_id, res)
+        self.read_lwm2mserver()
+        self.read_device()
+
+        print self.server.root.dump()
 
     def add_children(self, path, children):
         if len(children) == 0:
@@ -205,7 +186,7 @@ class Client(object):
         ep = uuid.uuid4()
         path = "/rd?ep=" + str(ep)
         request.uri_path = path
-        request.payload = '</>;rt="oma.lwm2m", </3/0>'
+        request.payload = '</>;rt="oma.lwm2m",</3/0>,</1/1>'
         self.server.send_message(request)
         response = self.queue.get(block=True)
         assert isinstance(response, Response)
