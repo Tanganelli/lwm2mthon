@@ -6,12 +6,13 @@ __author__ = 'jacko'
 
 
 def usage():  # pragma: no cover
-    print "lwm2mclient.py -d <device.json> -c <complete.json>"
+    print "lwm2mclient.py -d <device.json>"
 
 
 def main(argv):
+    device = None
     try:
-        opts, args = getopt.getopt(argv, "hd:c:", ["device=", "complete="])
+        opts, args = getopt.getopt(argv, "hd:", ["device="])
     except getopt.GetoptError:
         usage()
         sys.exit(2)
@@ -21,9 +22,8 @@ def main(argv):
             sys.exit()
         elif opt in ("-d", "--device"):
             device = arg
-        elif opt in ("-c", "--complete"):
-            complete = arg
-    client = Client(("127.0.0.1", 5685), device, complete)
+
+    client = Client(("127.0.0.1", 0), device)
     try:
         client.start()
     except KeyboardInterrupt:
@@ -32,4 +32,5 @@ def main(argv):
         print "Exiting..."
 
 if __name__ == "__main__":  # pragma: no cover
-     main(sys.argv[1:])
+    main(sys.argv[1:])
+

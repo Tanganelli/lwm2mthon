@@ -1,6 +1,7 @@
 import copy
 import logging
 import logging.config
+from coapthon.messages.response import Response
 import os
 import random
 import socket
@@ -148,14 +149,7 @@ class CoAP(object):
                     t = threading.Thread(target=self.receive_request, args=args)
                     t.start()
                 # self.receive_datagram(data, client_address)
-                elif isinstance(message, Message):
-                    transaction = self._messageLayer.receive_empty(message)
-                    if transaction is not None:
-                        with transaction:
-                            self._blockLayer.receive_empty(message, transaction)
-                            self._observeLayer.receive_empty(message, transaction)
-
-                else:  # is Response
+                elif isinstance(message, Response):
                     transaction, send_ack = self._messageLayer.receive_response(message)
                     if transaction is None:  # pragma: no cover
                         continue
@@ -178,6 +172,13 @@ class CoAP(object):
                         self._callback(transaction.response)
                     else:
                         self._callback(transaction.response)
+
+                else:  # is Message
+                    transaction = self._messageLayer.receive_empty(message)
+                    if transaction is not None:
+                        with transaction:
+                            self._blockLayer.receive_empty(message, transaction)
+                            self._observeLayer.receive_empty(message, transaction)
             except RuntimeError:
                 print "Exception with Executor"
         self._socket.close()

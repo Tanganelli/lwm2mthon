@@ -1,6 +1,7 @@
 import json
 import struct
 import ctypes
+import os
 from lwm2mthon import defines
 from lwm2mthon.defines import RegistryType, LWM2MResourceType
 from lwm2mthon.tlv import TLV, MULTIPLE_RESOURCE_TLV, RESOURCE_INSTANCE_TLV, RESOURCE_TLV, OBJECT_INSTANCE
@@ -8,7 +9,222 @@ from lwm2mthon.tlv import TLV, MULTIPLE_RESOURCE_TLV, RESOURCE_INSTANCE_TLV, RES
 __author__ = 'giacomo'
 
 
+def create_description():
+        json_dict = {
+            "endpointClientName": "lwm2mthon",
+            "lifetime": "60",
+            "version": "1.0",
+            "bindingMode": "U",
+            "smsNo": "",
+            "root": "/",
+            "objects": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+            "instances": {
+                "0": {
+                    "0": {
+                        "0": "coap://bootstrap.example.com:5684/",
+                        "1": True,
+                        "2": 0,
+                        "3": "[identity string]",
+                        "4": "[secret key data]",
+                        "10": 0,
+                        "11": 3600
+                    },
+                    "1": {
+                        "0": "",
+                        "1": False,
+                        "2": 3,
+                        "3": "",
+                        "4": "",
+                        "10": 101,
+                        "11": 0
+                    },
+                    "2": {
+                        "0": "coap://vs0.inf.ethz.ch:5686/",
+                        "1": False,
+                        "2": 3,
+                        "3": "",
+                        "4": "",
+                        "10": 102,
+                        "11": 0
+                    }
+                },
+                "1": {
+                    "1": {
+                        "0": 101,
+                        "1": 60,
+                        "2": 20,
+                        "3": 60,
+                        "5": 3600,
+                        "6": True,
+                        "7": "U",
+                        "8": "Lwm2mDevKit.Registration.update();"
+                    }
+                },
+                "2": {
+                    "0": {
+                        "0": 1,
+                        "1": 0,
+                        "2": {
+                            "101": 15
+                        },
+                        "3": 101
+                    },
+                    "1": {
+                        "0": 1,
+                        "1": 1,
+                        "2": {
+                            "102": 15
+                        },
+                        "3": 102
+                    },
+                    "2": {
+                        "0": 3,
+                        "1": 0,
+                        "2": {
+                            "101": 15,
+                            "102": 1
+                        },
+                        "3": 101
+                    },
+                    "3": {
+                        "0": 4,
+                        "1": 0,
+                        "2": {
+                            "0": 1,
+                            "101": 1
+                        },
+                        "3": 101
+                    },
+                    "4": {
+                        "0": 5,
+                        "1": 65535,
+                        "2": {
+                             "0": 1,
+                             "101": 16
+                        },
+                        "3": 65535
+                    }
+                },
+                "3": {
+                    "0": {
+                        "0": "Open Mobile Alliance",
+                        "1": "Lightweight M2M Client",
+                        "2": "345000123",
+                        "3": "1.0",
+                        "4": "document.location.reload();",
+                        "6": {
+                            "0": 1,
+                            "1": 5
+                        },
+                        "7": {
+                            "0": 3800,
+                            "1": 5000
+                        },
+                        "8": {
+                            "0": 125,
+                            "1": 900
+                        },
+                        "9": 100,
+                        "10": 15,
+                        "11": {
+                            "0": 0
+                        },
+                        "13": 0,
+                        "14": "+01:00",
+                        "15": "Europe/Rome",
+                        "16": "U"
+                    }
+                },
+                "4": {
+                    "0": {
+                        "0": 0,
+                        "1": {
+                            "0": 0
+                        },
+                        "2": 92,
+                        "3": 2,
+                        "4": {
+                            "0": "192.168.0.100"
+                        },
+                        "5": {
+                            "0": "192.168.1.1"
+                        },
+                        "6": 5,
+                        "7": {
+                            "0": "internet"
+                        }
+                    }
+                },
+                "5": {
+                    "0": {
+                        "0": "[firmware]",
+                        "1": "",
+                        "2": "alert('UPDATE');Lwm2mDevKit.client.instances[5][0][5]=1;Lwm2mDevKit.showInstanceScreen(5, 0);",
+                        "3": 1,
+                        "5": 0
+                    }
+                },
+                "9": {
+                    "0": {
+                        "0": "Software_package_name",
+                        "1": "1.0",
+                        "2": "[software]",
+                        "3": "",
+                        "4": "alert('SOFTWARE INSTALLATION');Lwm2mDevKit.client.instances[9][0][9]=2;Lwm2mDevKit.showInstanceScreen(9, 0);",
+                        "6": "alert('SOFTWARE UNINSTALL');Lwm2mDevKit.client.instances[9][0][9]=0;Lwm2mDevKit.showInstanceScreen(9, 0);",
+                        "7": "1",
+                        "9": "0",
+                        "10": "alert('SOFTWARE ACTIVATION');Lwm2mDevKit.client.instances[9][0][12]=true;Lwm2mDevKit.showInstanceScreen(9, 0);",
+                        "11": "alert('SOFTWARE DEACTIVATION');Lwm2mDevKit.client.instances[9][0][12]=false;Lwm2mDevKit.showInstanceScreen(9, 0);",
+                        "12": False
+                    }
+                }
+            },
+            "attributes": {
+                "1": {
+                    "1": {
+                        "pmin": 120,
+                        "pmax": 600
+                    },
+                    "pmin": 300,
+                    "pmax": 3600
+                },
+                "3": {
+                    "0": {
+                        "10": {
+                            "pmin": 5,
+                            "pmax": 45
+                        },
+                        "pmin": 10,
+                        "pmax": 30
+                    }
+                }
+            }
+        }
+        path = "conf_device.json"
+        with open(path, "w") as f:
+            json.dump(json_dict, f, indent=4, separators=(',', ': '))
+        return os.path.abspath(path)
+
+
 class TreeVisit(object):
+
+    @staticmethod
+    def make_tree(lst):
+        tree = {}
+        for item in lst:
+            if item == "/":
+                continue
+            ids = item.split("/")
+            ids = ids[1:]  # remove root
+            tmp_tree = tree
+            for i in ids:
+                if i not in tmp_tree.keys():
+                    tmp_tree[i] = {}
+
+                tmp_tree = tmp_tree[i]
+
+        return tree
 
     @staticmethod
     def get_children(children, resource=None):

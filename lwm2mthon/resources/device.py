@@ -1,3 +1,4 @@
+from datetime import date, datetime
 from coapthon.resources.resource import Resource
 import time
 from lwm2mthon import defines
@@ -127,24 +128,28 @@ class FirmwareVersion(Resource):
 
 class Reboot(Resource):
 
-    def __init__(self, name="4", resource_id="4", coap_server=None):
-        super(Reboot, self).__init__(name, coap_server=coap_server)
+    def __init__(self, name="4", resource_id="4", lwm2mclient=None):
+        super(Reboot, self).__init__(name)
         self.resource_id = resource_id
         self.lwm2m_type = LWM2MResourceType.STRING
+        self.lwm2mclient = lwm2mclient
 
     def render_POST(self, request):
-        pass
+        self.lwm2mclient.reboot()
+        return self
 
 
 class FactoryReboot(Resource):
 
-    def __init__(self, name="5", resource_id="5", coap_server=None):
-        super(FactoryReboot, self).__init__(name, coap_server=coap_server)
+    def __init__(self, name="5", resource_id="5", lwm2mclient=None):
+        super(FactoryReboot, self).__init__(name)
         self.resource_id = resource_id
         self.lwm2m_type = LWM2MResourceType.STRING
+        self.lwm2mclient = lwm2mclient
 
     def render_POST(self, request):
-        pass
+        self.lwm2mclient.factoryreboot()
+        return self
 
 
 class AvailablePowerSource(Resource):
@@ -368,10 +373,13 @@ class ResetErrorCode(Resource):
 
 class CurrentTime(Resource):
 
-    def __init__(self, name="13", value="", resource_id="13", coap_server=None):
+    def __init__(self, name="13", value=0, resource_id="13", coap_server=None):
         super(CurrentTime, self).__init__(name, coap_server=coap_server)
         self.start_time = int(time.time())
-        self.value = self.start_time
+        if value == 0:
+            self.value = self.start_time
+        else:
+            self.value = int(value)
         self.resource_id = resource_id
         self.lwm2m_type = LWM2MResourceType.INTEGER
 
@@ -391,7 +399,6 @@ class CurrentTime(Resource):
     def get_value(self):
         now = int(time.time())
         dif = now - self.start_time
-        self.start_time = now
         self.value += dif
         return self.value
 
@@ -405,7 +412,7 @@ class UTCOffset(Resource):
         self.lwm2m_type = LWM2MResourceType.STRING
 
     def render_GET(self, request):
-        self.payload = str(self.value)
+        self.payload = str(self.get_value())
         return self
 
     def render_PUT(self, request):
@@ -413,7 +420,7 @@ class UTCOffset(Resource):
         return self
 
     def set_value(self, value):
-        self.value = int(value)
+        self.value = str(value)
         self._coap_server.notify(self)
 
     def get_value(self):
@@ -424,6 +431,7 @@ class Timezone(Resource):
 
     def __init__(self, name="15", value="", resource_id="15", coap_server=None):
         super(Timezone, self).__init__(name, coap_server=coap_server)
+
         self.value = value
         self.resource_id = resource_id
         self.lwm2m_type = LWM2MResourceType.STRING
