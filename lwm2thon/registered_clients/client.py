@@ -1,13 +1,12 @@
-from enum import Enum
-
 import datetime
-from typing import List
+from typing import List, Dict
 
+from lwm2thon.objects.LWM2Mobject import LWM2MObject
 from lwm2thon.registered_clients.client_context import Binding
 
 
 class Client(object):
-    def __init__(self, endpoint_client_name: str, lifetime: int, lwm2m_version: float, objects,
+    def __init__(self, endpoint_client_name: str, lifetime: int, lwm2m_version: float, objects: Dict[str, LWM2MObject],
                  binding_mode: List[Binding] = Binding.U, queue_mode: bool = None, sms_number: str = None):
         if endpoint_client_name is not None:
             self._endpoint_client_name = str(endpoint_client_name)
@@ -25,7 +24,8 @@ class Client(object):
         self._timestamp = datetime.datetime.now().timestamp()
         self._registered = True
 
-    def update(self, lifetime: int=None, binding_mode: List[Binding]=None, sms_number: str=None, objects=None):
+    def update(self, lifetime: int=None, binding_mode: List[Binding]=None, sms_number: str=None,
+               objects: Dict[str, LWM2MObject]=None):
         if lifetime is not None:
             self._lifetime = int(lifetime)
         if binding_mode is not None:
@@ -42,3 +42,7 @@ class Client(object):
     def de_register(self) -> bool:
         self._registered = False
         return True
+
+    def get_object(self, uri: str) -> LWM2MObject:
+        return self._objects.get(uri, None)
+
