@@ -131,4 +131,4 @@ class InformationReporting(object):
 
     # TODO Observe-composite
 
-    #TODO cancel-observation-composite
+    # TODO cancel-observation-composite
