@@ -1,5 +1,7 @@
 import re
 
+from lwm2thon.registered_clients.client_context import Instances
+
 
 class LWM2MBaseEntity(object):
     def __init__(self):
@@ -68,15 +70,26 @@ class LWM2MObject(LWM2MBaseEntity):
         self._id = object_id
         self._object_instances = {}
 
+        self._name = ""
+        self._instances = Instances.SINGLE
+        self._mandatory = False
+        self._object_urn = ""
+
+        self.fill_from_registry()
+
     @property
     def id(self):
         return self._id
 
-    def add_instance(self, object_instance: LWM2MObjectInstance):
+    def add_instance(self, object_instance: 'LWM2MObjectInstance'):
         self._object_instances[object_instance.id] = object_instance
 
     def get_instance(self, object_instance_id: str):
         return self._object_instances.get(object_instance_id, None)
+
+    def fill_from_registry(self):
+        # TODO
+        pass
 
 
 class LWM2MObjectInstance(LWM2MBaseEntity):
@@ -94,7 +107,7 @@ class LWM2MObjectInstance(LWM2MBaseEntity):
     def parent(self):
         return self._parent_object
 
-    def add_resource(self, resource: LWM2MResource):
+    def add_resource(self, resource: 'LWM2MResource'):
         self._resources[resource.id] = resource
 
     def get_resource(self, resource_id: str):
@@ -109,6 +122,18 @@ class LWM2MResource(LWM2MBaseEntity):
         self._resource_instances = {}
         self._multiple_instance = False
         self._value = None
+
+        self._name = ""
+        self._operations = []
+        self._instances = Instances.SINGLE
+        self._mandatory = False
+        self._resource_type = None
+        self._range = None
+        self._units = ""
+        self._description = ""
+
+
+        self.fill_from_registry()
 
     @property
     def id(self) -> str:
@@ -134,11 +159,14 @@ class LWM2MResource(LWM2MBaseEntity):
     def parent(self):
         return self._parent_object_instance
 
-    def add_resource_instance(self, resource_instance: LWM2MResourceInstance):
+    def add_resource_instance(self, resource_instance: 'LWM2MResourceInstance'):
         self._resource_instances[resource_instance.id] = resource_instance
 
     def get_resource_instance(self, resource_instance_id: str):
         return self._resource_instances.get(resource_instance_id, None)
+
+    def fill_from_registry(self):
+        pass
 
 
 class LWM2MResourceInstance(LWM2MBaseEntity):

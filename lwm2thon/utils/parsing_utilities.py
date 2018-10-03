@@ -2,11 +2,10 @@ from typing import Dict
 
 import re
 
-from lwm2thon.objects.LWM2Mobject import LWM2MObject, LWM2MObjectInstance, LWM2MResource, LWM2MResourceInstance
+from lwm2thon.objects.LWM2Mobjects import LWM2MObject, LWM2MObjectInstance, LWM2MResource, LWM2MResourceInstance
 
 
 class CoReLinkFormat(object):
-
     @staticmethod
     def parse(link_str: str) -> Dict[str, LWM2MObject]:
         objects = {}
@@ -51,3 +50,34 @@ class CoReLinkFormat(object):
                 resource_instance_id.parse(link_format)
 
         return objects
+
+
+class LWM2MRegistrationQuery(object):
+    @staticmethod
+    def parse(query: str):
+        endpoint_client_name = None
+        lifetime = None
+        lwm2m_version = None
+        binding_mode = None
+        queue_mode = None
+        sms_number = None
+        queries = query.split("&")
+        for qu in queries:
+            q = qu.split("=")
+            if len(q) > 1:
+                k = q[0]
+                v = q[1]
+                if k == "ep":
+                    endpoint_client_name = v
+                elif k == "lt":
+                    lifetime = int(v)
+                elif k == "lwm2m":
+                    lwm2m_version = float(v)
+                elif k == "b":
+                    binding_mode = v
+                elif k == "sms":
+                    sms_number = v
+            elif len(q) == 1:
+                if q[0] == "Q":
+                    queue_mode = True
+        return endpoint_client_name, lifetime, lwm2m_version, binding_mode, queue_mode, sms_number

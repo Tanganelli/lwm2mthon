@@ -4,7 +4,7 @@ from typing import List
 from lwm2thon.registered_clients.client import Client
 from lwm2thon.registered_clients.client_context import ClientContext, Binding
 from lwm2thon.server.LWM2Mserver import LWM2MServer
-from lwm2thon.utils.core_link_format import CoReLinkFormat
+from lwm2thon.utils.parsing_utilities import CoReLinkFormat, LWM2MRegistrationQuery
 
 
 class RegistrationResponse(Enum):
@@ -18,11 +18,11 @@ class Registration(object):
     def __init__(self, server: LWM2MServer):
         self._server = server
 
-    def registration(self, client_context: ClientContext, endpoint_client_name: str, lifetime: int,
-                     lwm2m_version: float, objects: str, binding_mode: List[Binding] = Binding.U,
-                     queue_mode: bool = None, sms_number: str = None) -> RegistrationResponse:
+    def registration(self, client_context: ClientContext, query: str, objects: str) -> RegistrationResponse:
 
         resources = CoReLinkFormat.parse(objects)
+        endpoint_client_name, lifetime, lwm2m_version, binding_mode, queue_mode, sms_number = \
+            LWM2MRegistrationQuery.parse(query)
         client = Client(endpoint_client_name, lifetime, lwm2m_version, resources, binding_mode, queue_mode, sms_number)
         lst = self._server.get_client_keys()
         if endpoint_client_name not in lst:
@@ -32,11 +32,12 @@ class Registration(object):
             return RegistrationResponse.SECURITY_NOT_MATCH
         return RegistrationResponse.ALREADY_REGISTERED
 
-    def update(self, client_context: ClientContext, lifetime: int=None, binding_mode: List[Binding]=None,
-               sms_number: str=None, objects: str=None) -> RegistrationResponse:
+    def update(self, client_context: ClientContext, query: str, objects: str=None) -> RegistrationResponse:
         client = self._server.get_client(client_context)
         if client is not None:
             assert isinstance(client, Client)
+            endpoint_client_name, lifetime, lwm2m_version, binding_mode, queue_mode, sms_number = \
+                LWM2MRegistrationQuery.parse(query)
             if objects is not None:
                 resources = CoReLinkFormat.parse(objects)
             else:

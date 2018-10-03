@@ -1,7 +1,7 @@
 from enum import Enum
 from typing import Union, Any
 
-from lwm2thon.objects.LWM2Mobject import LWM2MObject, LWM2MObjectInstance, LWM2MResource, LWM2MResourceInstance
+from lwm2thon.objects.LWM2Mobjects import LWM2MObject, LWM2MObjectInstance, LWM2MResource, LWM2MResourceInstance
 from lwm2thon.registered_clients.client_context import ClientContext
 from lwm2thon.server.LWM2Mserver import LWM2MServer
 

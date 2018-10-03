@@ -1,7 +1,7 @@
 import datetime
 from typing import List, Dict
 
-from lwm2thon.objects.LWM2Mobject import LWM2MObject
+from lwm2thon.objects.LWM2Mobjects import LWM2MObject
 from lwm2thon.registered_clients.client_context import Binding
 
 
