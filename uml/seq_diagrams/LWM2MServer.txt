@@ -1,0 +1,55 @@
+@startuml
+hide footbox
+title "Messages - Sequence Diagram"
+
+actor LWM2MClient as c
+participant LWM2MServer as s
+entity RegisterInterface as r
+database RegisteredClients as d
+
+== Registration ==
+c-> s: RegistrationRequest
+activate s
+s->r: RegistrationRequest
+activate r
+r->d: GetFromDB(endpoint)
+activate d
+d-->r: LWM2MClient
+deactivate d
+alt LWM2MClient is empty
+    r->d: AddToDB(LWM2MClient)
+    activate d
+    d-->r: ClientAdded
+    deactivate d
+    r -->s: SuccessResponse
+else Client already registered
+    r -->s: FailResponse
+end
+deactivate r
+s-->c: RegistrationResponse
+deactivate s
+
+== Update ==
+c-> s: UpdateRequest
+activate s
+s->r: UpdateRequest
+activate r
+r->d: GetFromDB(endpoint)
+activate d
+d-->r: LWM2MClient
+deactivate d
+alt Valid LWM2MClient
+    r->d: UpdateDB(LWM2MClient)
+    activate d
+    d-->r: ClientUpdated
+    deactivate d
+    r -->s: SuccessResponse
+else LWM2MClient is empty
+    r -->s: FailResponse
+end
+deactivate r
+s-->c: UpdateResponse
+deactivate s
+
+
+@enduml

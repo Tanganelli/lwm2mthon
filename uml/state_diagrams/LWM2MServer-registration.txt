@@ -1,0 +1,18 @@
+@startuml
+
+title LWM2M Server - Register interface
+[*] --> Idle
+
+Idle --> Registering : New client
+Registering --> Idle: Location-Uri
+
+Idle --> Updating: client_id
+Updating --> Idle
+
+Idle --> Discover: client_id
+Discover -> sendRequest: client_id, uri
+sendRequest -> Discover: payload
+Discover --> Idle: LWM2MObjects
+
+
+@enduml

@@ -1,0 +1,45 @@
+@startuml
+
+title LWM2M Server
+[*] --> Idle
+
+Idle --> Registering : New client
+Registering--> Idle: Location-URI
+state Registering{
+    [*] --> ValidateInput
+    ValidateInput-->AddClient
+}
+
+Idle --> Updating: clientID
+Updating --> Idle
+state Updating{
+    [*] --> CheckClient
+    CheckClient-->UpdateClient
+}
+
+
+Idle --> Discover: clientID
+state Discover{
+    [*] --> DiscoverObjects
+    DiscoverObjects-->sendDiscoverRequest
+    sendDiscoverRequest --> DiscoverObjects
+}
+Discover --> Idle: LWM2MObjects
+
+Idle --> Read: clientID, ObjectURI
+state Read{
+    [*] --> ReadObject
+    ReadObject-->sendReadRequest
+    sendReadRequest --> ReadObject 
+}
+Read --> Idle: ObjectValue
+
+Idle --> Write: clientID, ObjectURI, ObjectValue
+state Write{
+    [*] --> WriteObject
+    WriteObject-->sendWriteRequest
+    sendWriteRequest --> WriteObject 
+}
+Write --> Idle: ResponseCode
+
+@enduml
