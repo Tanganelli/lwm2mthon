@@ -1,0 +1,134 @@
+start: "@startuml" title? namespace? (skinparam | class | relationship | enum | interface)* "@enduml"
+
+// Skinparam
+skinparam: "skinparam" sparam svalue
+
+// Classes
+class: class_type? "class" (package separator)? class_name stereotype? ("{" (class_group_title? (attribute | method) class_group_title?)* "}")?
+
+enum: "enum" (package separator)? enum_name ("{" (attribute)* "}")?
+
+interface: class_type? "interface" (package separator)? class_name stereotype? ("{" (class_group_title? (attribute | method) class_group_title?)* "}")?
+
+// Stereotype
+stereotype: "<<" stereotype_name ">>"
+
+title: /[a-zA-Z0-9 ]+/
+
+namespace: "set namespaceSeparator " separator
+
+separator: /[.:]+/
+
+package: CNAME
+
+// Sections with title
+class_group_title: ".." (group_title "..")?
+                 | "--" (group_title "--")?
+                 | "__" (group_title "__")?
+                 | "=="
+
+// Variables
+variable: var ":" type
+        | var ":" type "[]"
+        | var ":" type "*"
+        | var
+        | var ":" type "=" type
+
+text_field: "{field}" field_text
+
+?attribute: att_scope? visibility? variable
+          | visibility? att_scope? variable
+          | att_scope? visibility? text_field
+          | visibility? att_scope? text_field
+
+param_list: [variable ("," variable)*]
+
+function: method_name "(" param_list ")" ("->" rtype)?
+
+text_method: "{method}" method_text
+
+method: att_scope? visibility? function
+
+// Attribute Scope
+att_scope: "{static}" -> static
+         | "{abstract}" -> abstract
+
+// Relationships
+relationship: arrow_end_1 cardinality? arrow_head_1 arrow_body arrow_head_2 cardinality? arrow_end_2 [":" relation_text]
+
+// Arrow Heads
+!arrow_head_1: "<"
+             | "<|"
+             | "*"
+             | "o"
+             | "+"
+             | "#"
+             | "x"
+             | "}"
+             | "^"
+             | " "
+
+!arrow_head_2: ">"
+             | "|>"
+             | "*"
+             | "o"
+             | "+"
+             | "#"
+             | "x"
+             | "}"
+             | "^"
+             | " "
+
+!arrow_body: ("-"
+           | "--"
+           | "---"
+           | "-left-"
+           | "-up-"
+           | "-right-"
+           | "-down-"
+           | "."
+           | ".."
+           | ".left."
+           | ".up."
+           | ".right."
+           | ".down." )
+
+cardinality: ESCAPED_STRING
+
+// Variables and Methods visibility
+visibility: "+" -> public
+          | "-" -> private
+          | "#" -> protected
+          | "~" -> package
+
+class_type: "abstract"
+arrow_end_1: (package separator)? class_name
+arrow_end_2: (package separator)? class_name
+type_name: CNAME (separator CNAME)?
+list: "List"
+dict: "Dict"
+rtype: type_name | list "[" type_name "]" | dict "[" type_name "," type_name "]"
+type: type_name | list "[" type_name "]" | dict "[" type_name "," type_name "]"
+var: CNAME
+sparam: CNAME
+svalue: CNAME|WORD|ESCAPED_STRING|DIGIT
+attribute_name: CNAME
+method_name: CNAME
+class_name: CNAME
+enum_name: CNAME
+stereotype_name: CNAME
+relation_text: (WORD|ESCAPED_STRING|DIGIT|">"|"<")*
+field_text: (WORD|ESCAPED_STRING|DIGIT)*
+method_text: (WORD|ESCAPED_STRING|DIGIT)*
+class_mem_text: (WORD|ESCAPED_STRING|DIGIT)*
+group_title: (WORD|ESCAPED_STRING|DIGIT)*
+
+
+
+
+%import common.CNAME
+%import common.ESCAPED_STRING
+%import common.WORD
+%import common.DIGIT
+%import common.WS
+%ignore WS

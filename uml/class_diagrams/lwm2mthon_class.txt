@@ -1,6 +1,6 @@
 @startuml
-page 2x2
-title LWM2Mthon
+
+title LWM2Mthon Class
 
 set namespaceSeparator .
 
@@ -12,6 +12,7 @@ class coapthon.Client{
     +sendRequest()
 }
 
+
 class lwm2mthon.LWM2MServer {
     -registeredClients: Dict[str, LWM2MClient]
     -updateThread: Thread
@@ -21,7 +22,7 @@ class lwm2mthon.LWM2MServer {
     --
     -registrationPurge()
     -notificationReceived()
-    -addClient(LWM2MClient)
+    -addClient(client: LWM2MClient)
     +registrationListener()
     +Read(path: str) -> JSON
     +Write(path: str, v: JSON)
@@ -31,7 +32,7 @@ class lwm2mthon.LWM2MServer {
     +Observe(path: str) -> JSON
     .. Getters ..
     +getRegisteredClients() -> Dict[str, LWM2MClient]
-    
+
 }
 
 class lwm2mthon.ClientContext{
@@ -50,11 +51,11 @@ class lwm2mthon.LWM2MClient {
     -binding: List[Binding]
     -location_uri: str
     --
-    +Client(ctx: ClientContext, endpoint: str, lifetime: int, 
-    lwm2m_version: float, objects: Dict[str, LWM2MObject], 
+    +Client(ctx: ClientContext, endpoint: str, lifetime: int,
+    lwm2m_version: float, objects: Dict[str, LWM2MObject],
     binding: List[Binding]=Binding.UDP, queue_mode: bool=False, sms_number: str=None)
-    +updateClient(ctx: ClientContext, lifetime: int, 
-    binding: List[Binding]=None, sms_number: str=None, 
+    +updateClient(ctx: ClientContext, lifetime: int,
+    binding: List[Binding]=None, sms_number: str=None,
     objects: Dict[str, LWM2MObject]=None)
     .. Getters ..
     +getContext() -> ClientContext
@@ -89,6 +90,7 @@ enum lwm2mthon.InstanceType {
     SINGLE
     MULTIPLE
 }
+
 abstract class lwm2mthon.LWM2MBaseType{
     -id: int
     -params: Dict[str, str]
@@ -99,7 +101,7 @@ abstract class lwm2mthon.LWM2MBaseType{
     .. Setters ..
     +setID(id: str)
     +setParam(key: str, value: str)
-    
+
 }
 
 class lwm2mthon.LWM2MObject{
@@ -107,6 +109,7 @@ class lwm2mthon.LWM2MObject{
     -instance_type: InstanceType
     -mandatory: bool
     -urn: str
+    -instances: List[LWM2MInstance]
     --
     +LWM2MObject(id: int, params: Dict[str, str])
     +Read() -> JSON
@@ -123,6 +126,8 @@ class lwm2mthon.LWM2MObject{
 }
 
 class lwm2mthon.LWM2MInstance{
+    -resources: Dict[int, LWM2MResource]
+    --
     +LWM2MInstance(id: int, params: Dict[str, str])
     +Read() -> JSON
     +Write(v: JSON)
@@ -158,6 +163,7 @@ class lwm2mthon.LWM2MResource{
     -units: str
     -description: str
     -value
+    -resource_instances: List[LWM2MResourceInstance]
     --
     +LWM2MResource(id: int, params: Dict[str, str])
     +Read() -> JSON
@@ -181,6 +187,7 @@ class lwm2mthon.LWM2MResource{
     +delResourceInstance(id: int)
 }
 
+
 class lwm2mthon.LWM2MResourceInstance{
     -value
     --
@@ -191,9 +198,10 @@ class lwm2mthon.LWM2MResourceInstance{
     +Observe() -> JSON
     +Notify(v: JSON)
 }
+
 lwm2mthon.LWM2MServer .> coapthon.Server
 lwm2mthon.LWM2MServer .> coapthon.Client
-lwm2mthon.LWM2MServer "1" o-- "0..*" lwm2mthon.LWM2MClient 
+lwm2mthon.LWM2MServer "1" o-- "0..*" lwm2mthon.LWM2MClient
 lwm2mthon.Binding <. lwm2mthon.LWM2MClient
 lwm2mthon.LWM2MClient .> lwm2mthon.ClientContext
 

@@ -1,6 +1,7 @@
 from enum import Enum
 from typing import List
 
+
 from lwm2thon.registered_clients.client import Client
 from lwm2thon.registered_clients.client_context import ClientContext, Binding
 from lwm2thon.server.LWM2Mserver import LWM2MServer

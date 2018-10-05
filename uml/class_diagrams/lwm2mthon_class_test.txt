@@ -1,0 +1,223 @@
+@startuml
+
+title LWM2Mthon Class
+
+set namespaceSeparator .
+
+class coapthon.Server{
+    +listen()
+}
+
+class coapthon.Client{
+    +sendRequest()
+}
+
+
+class lwm2mthon.LWM2MServer {
+    -registeredClients: Dict[str, LWM2MClient]
+    -updateThread: Thread
+    -notificationThred: Thread
+    -coapServer: coapthon.Server
+    -coapClientPool: List[coapthon.Client]
+    --
+    -registrationPurge()
+    -notificationReceived()
+    -addClient(client: LWM2MClient)
+    +registrationListener()
+    +Read(path: str) -> JSON
+    +Write(path: str, v: JSON)
+    +Discover(path: str) -> CoReLinkFormat
+    +WriteAttributes(path: str, v: CoReLinkFormat)
+    +Create(path: str, v: JSON)
+    +Observe(path: str) -> JSON
+    .. Getters ..
+    +getRegisteredClients() -> Dict[str, LWM2MClient]
+
+}
+
+class lwm2mthon.ClientContext{
+    -ip: str
+    -port: int
+}
+
+class lwm2mthon.LWM2MClient {
+    -context: ClientContext
+    -endpoint: str
+    -lifetime: int
+    -objects: Dict[str, LWM2MObject]
+    -lwm2m_version: float
+    -queue_mode: bool
+    -sms_number: str
+    -binding: List[Binding]
+    -location_uri: str
+    --
+    +Client(ctx: ClientContext, endpoint: str, lifetime: int,
+    lwm2m_version: float, objects: Dict[str, LWM2MObject],
+    binding: List[Binding]=Binding.UDP, queue_mode: bool=False, sms_number: str=None)
+    +updateClient(ctx: ClientContext, lifetime: int,
+    binding: List[Binding]=None, sms_number: str=None,
+    objects: Dict[str, LWM2MObject]=None)
+    .. Getters ..
+    +getContext() -> ClientContext
+    +getEndpointName() -> str
+    +getLifetime() -> int
+    +getLWM2MVersion() -> float
+    +getObjects() ->  Dict[str, LWM2MObject]
+    +getQueueMode() -> bool
+    +getSMSNumber() -> str
+    +getBinding() -> List[Binding]
+    +getLocatioURI() -> str
+    .. Setters ..
+    +setContext(ctx: ClientContext)
+    +setEndpointName(ep: str)
+    +setLifetime(lf: int)
+    +setLWM2MVersion(ver: float)
+    +setQueueMode(q: bool)
+    +setSMSNumber(sms: str)
+    +setBinding(b: List[Binding])
+    ~setLocatioURI(uri: str)
+
+}
+
+enum lwm2mthon.Binding {
+    UDP
+    TCP
+    SMS
+    NON-IP
+}
+
+enum lwm2mthon.InstanceType {
+    SINGLE
+    MULTIPLE
+}
+
+abstract class lwm2mthon.LWM2MBaseType{
+    -id: int
+    -params: Dict[str, str]
+    .. Getters ..
+    +getID() -> int
+    +getParam(key: str) -> str
+    +hasParam(key: str) -> bool
+    .. Setters ..
+    +setID(id: str)
+    +setParam(key: str, value: str)
+
+}
+
+class lwm2mthon.LWM2MObject{
+    -name: str
+    -instance_type: InstanceType
+    -mandatory: bool
+    -urn: str
+    -instances: List[LWM2MInstance]
+    --
+    +LWM2MObject(id: int, params: Dict[str, str])
+    +Read() -> JSON
+    +Discover() -> CoReLinkFormat
+    +WriteAttributes(v: CoReLinkFormat)
+    +Create(v: JSON)
+    +Observe() -> JSON
+    +Notify(v: JSON)
+    .. Getters ..
+    +getName() -> str
+    +getInstanceType() -> InstanceType
+    +isMandatory() -> bool
+    +getURN() -> str
+}
+
+class lwm2mthon.LWM2MInstance{
+    -resources: Dict[int, LWM2MResource]
+    --
+    +LWM2MInstance(id: int, params: Dict[str, str])
+    +Read() -> JSON
+    +Write(v: JSON)
+    +Discover() -> CoReLinkFormat
+    +WriteAttributes(v: CoReLinkFormat)
+    +Delete()
+    +Observe() -> JSON
+    +Notify(v: JSON)
+    .. Getters ..
+    +getResources() -> Dict[int, LWM2MResource]
+}
+
+interface lwm2mthon.ResourceRange {
+    ~isValid(value) -> bool
+    ~getStart()
+    ~getEnd()
+}
+
+enum lwm2mthon.ResourceType {
+    OPAQUE
+    INTEGER
+    STRING
+    BOOLEAN
+    FLOAT
+}
+
+class lwm2mthon.LWM2MResource{
+    -name: str
+    -instance_type: InstanceType
+    -mandatory: bool
+    -type: ResourceType
+    -range: ResourceRange
+    -units: str
+    -description: str
+    -value
+    -resource_instances: List[LWM2MResourceInstance]
+    --
+    +LWM2MResource(id: int, params: Dict[str, str])
+    +Read() -> JSON
+    +Write(v: JSON)
+    +Discover() -> CoReLinkFormat
+    +WriteAttributes(v: CoReLinkFormat)
+    +Execute(arg: str)
+    +Observe() -> JSON
+    +Notify(v: JSON)
+    .. Getters ..
+    +getName() -> str
+    +getInstanceType() -> InstanceType
+    +isMandatory() -> bool
+    +getType() -> ResourceType
+    +getRange() -> ResourceRange
+    +getUnits() -> str
+    +getDescription() -> str
+    .. Setters ..
+    +addResourceInstance()
+    .. Deleters ..
+    +delResourceInstance(id: int)
+}
+
+
+class lwm2mthon.LWM2MResourceInstance{
+    -value
+    --
+    +LWM2MResourceInstance(id: int)
+    +Read() -> JSON
+    +Write(v: JSON)
+    +WriteAttributes(v: CoReLinkFormat)
+    +Observe() -> JSON
+    +Notify(v: JSON)
+}
+
+lwm2mthon.LWM2MServer .> coapthon.Server
+lwm2mthon.LWM2MServer .> coapthon.Client
+lwm2mthon.LWM2MServer "1" o-- "0..*" lwm2mthon.LWM2MClient
+lwm2mthon.Binding <. lwm2mthon.LWM2MClient
+lwm2mthon.LWM2MClient .> lwm2mthon.ClientContext
+
+lwm2mthon.LWM2MClient "1" o-- "1..*" lwm2mthon.LWM2MObject
+
+lwm2mthon.LWM2MBaseType <|- lwm2mthon.LWM2MObject
+lwm2mthon.LWM2MBaseType <|-- lwm2mthon.LWM2MInstance
+lwm2mthon.LWM2MBaseType <|-- lwm2mthon.LWM2MResource
+lwm2mthon.LWM2MBaseType <|-- lwm2mthon.LWM2MResourceInstance
+
+lwm2mthon.LWM2MObject "1" o-- "0..*" lwm2mthon.LWM2MInstance
+lwm2mthon.LWM2MObject .> lwm2mthon.InstanceType
+lwm2mthon.LWM2MInstance "1" o-- "1..*" lwm2mthon.LWM2MResource
+lwm2mthon.LWM2MResource "1" o-- "0..*" lwm2mthon.LWM2MResourceInstance
+lwm2mthon.LWM2MResource .> lwm2mthon.InstanceType
+lwm2mthon.LWM2MResource "1" o-- "0..1" lwm2mthon.ResourceRange
+lwm2mthon.ResourceType <. lwm2mthon.LWM2MResource
+
+@enduml
